@@ -1,0 +1,38 @@
+language: python
+
+python:
+  - "2.7"
+
+env:
+  - CONDA="python=2.7"
+
+before_install:
+  # conda setup (see: http://conda.pydata.org/docs/travis.html):
+  - sudo apt-get update
+  # We do this conditionally because it saves us some downloading if the
+  # version is the same.
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda config --add channels conda-forge --force
+  # Useful for debugging any issues with conda
+  - conda info -a
+
+  - travis_retry conda create --yes -n test-environment --file requirements.txt $CONDA
+#  - travis_retry conda install -n test-environment --yes pytest flake8
+  - source activate test-environment
+
+install:
+#  - pip install -r requirements.txt
+  - pip install -e .
+
+
+script:
+  - flake8 --ignore=E501,F401,F841 --statistics catalog_query
