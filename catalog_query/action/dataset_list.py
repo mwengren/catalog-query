@@ -25,7 +25,7 @@ from compliance_checker.runner import ComplianceChecker, CheckSuite
 
 
 # local:
-from ..util import *
+from ..util import obtain_owner_org, package_search, create_output_dir
 from ..catalog_query import ActionException
 
 # logging:
@@ -71,11 +71,16 @@ class Action:
         if "name" not in self.query_params.keys():
             raise ActionException("Error running the Resource Compliance Checker action.  No 'name' parameter (CKAN Organization name) passed to the Resource Compliance Checker Action.  This is required.")
 
-        # create logging output file in a directory of the Organization's name for general logging:
+        # create output file in a directory of the Organization's name for general logging (create if not already existing):
         # get the Action file name to use in naming output file, using os.path.split:
         action_name = os.path.split(__file__)[1].split(".")[0]
         label = "".join(random.choice(string.lowercase) for i in range(5))
-        self.out = io.open(os.path.join(self.query_params.get("name"), action_name + ".out"), mode="wt", encoding="utf-8")
+        filename = os.path.join(self.query_params.get("name"), action_name + ".out")
+
+        if not os.path.exists(os.path.dirname(filename)):
+            # will throw ActionException with error message if the output directory can't be created:
+            create_output_dir(os.path.dirname(filename))
+        self.out = io.open(filename, mode="wt", encoding="utf-8")
 
         # create the results_filename (path to results output file) depending on if an 'output' filename parameter was provided or not:
         if "output" in kwargs:

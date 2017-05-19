@@ -12,6 +12,10 @@ using the -resource_cc_check action.
 catalog-query can be easily extended by writing additional Action classes, better ones no doubt than the two already present...
 See Usage section below for more details.
 
+### Requirements ###
+Currently this module works with Python 2.7 only due to the way the action classes are loaded via ```importlib.import_module```.
+Looking for a way to do this in a Python 3-compatible way.
+
 #### Installation: ####
 ```
 git clone https://github.com/mwengren/catalog-query.git
@@ -29,7 +33,7 @@ catalog-query -c http://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,r
 
 # run Compliance Checker against all resources of format 'ERDDAP' with resource_name 'OPeNDAP' belonging to NANOOS,
 # and output to the file 'nanoos_opendap_compliance_results.csv'.  This is how to extract only the ERDDAP OPeNDAP URLs from IOOS catalog.
-catalog-query -c http://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_opendap_compliance_results.csv
+catalog-query -c http://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_erddap_compliance_results.csv
 ```
 
 

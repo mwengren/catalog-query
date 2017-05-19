@@ -7,6 +7,8 @@ import logging
 import json
 import requests
 
+from catalog_query import ActionException
+
 def obtain_owner_org(api_url, org_name, logger=None):
     """
     obtain_owner_org: return org info from the CKAN API via query by Org Name (self.query_org)
@@ -54,14 +56,14 @@ def package_search(api_url, org_id, start_index, logger=None, out=None):
 
 def create_output_dir(dir_name):
     """
-    create an output directory
+    create an output directory(ies)
     """
     try:
         os.makedirs(dir_name)
         # test error handling:
         # raise OSError
     except OSError as ex:
-        if ex.errno == errno.EEXIST and os.path.isdir(dir_name):
+        if ex.errno == errno.EEXIST:
             print("Warning: the configured output directory: {output_dir} already exists. Files may be overwritten from prior runs.".format(output_dir=os.path.abspath(dir_name)))
         else:
             raise ActionException("Error: the configured output directory: {output_dir} was not able to be created.".format(output_dir=os.path.abspath(dir_name)))

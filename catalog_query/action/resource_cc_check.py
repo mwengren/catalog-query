@@ -25,7 +25,7 @@ from compliance_checker.runner import ComplianceChecker, CheckSuite
 
 
 # local:
-from ..util import *
+from ..util import obtain_owner_org, package_search, create_output_dir
 from ..catalog_query import ActionException
 
 # logging:
@@ -34,6 +34,9 @@ logger.setLevel(logging.INFO)
 log = logging.FileHandler('resource_cc_check.log', mode='w')
 log.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s'))
 logger.addHandler(log)
+
+# default CC tests:
+CC_TESTS = ['cf', 'acdd', 'ioos']
 
 """
 Resource Compliance Checker Action:
@@ -73,11 +76,16 @@ class Action:
         if "name" not in self.query_params.keys():
             raise ActionException("Error running the Resource Compliance Checker action.  No 'name' parameter (CKAN Organization name) passed to the Resource Compliance Checker Action.  This is required.")
 
-        # create logging output file in a directory of the Organization's name for general logging:
+        # create output file in a directory of the Organization's name for general logging (create if not already existing):
         # get the Action file name to use in naming output file, using os.path.split:
         action_name = os.path.split(__file__)[1].split(".")[0]
         label = "".join(random.choice(string.lowercase) for i in range(5))
-        self.out = io.open(os.path.join(self.query_params.get("name"), action_name + ".out"), mode="wt", encoding="utf-8")
+        filename = os.path.join(self.query_params.get("name"), action_name + ".out")
+
+        if not os.path.exists(os.path.dirname(filename)):
+            # will throw ActionException with error message if the output directory can't be created:
+            create_output_dir(os.path.dirname(filename))
+        self.out = io.open(filename, mode="wt", encoding="utf-8")
 
         # create the results_filename (path to results output file) depending on if an 'output' filename parameter was provided or not:
         if "output" in kwargs:
@@ -90,9 +98,9 @@ class Action:
         try:
             self.cc_tests = [ test for test in kwargs.get("cc_tests").split(",") ]
         except AttributeError as e:
-            self.cc_tests = ['cf', 'acdd', 'ioos']
-            print("No Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: 'cf', 'acdd', 'ioos'")
-            self.out.write(u"\nNo Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: 'cf', 'acdd', 'ioos'")
+            self.cc_tests = CC_TESTS
+            print("No Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: {tests}".format(tests=", ".join(CC_TESTS)))
+            self.out.write(u"\nNo Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: {tests}".format(tests=", ".join(CC_TESTS)))
             #raise ActionException("Error running the Resource Compliance Checker action.  You probably want to specify some Compliance Checker tests to run with the -t|-cc_tests param.  Just sayin'.")
             pass
 
@@ -150,21 +158,33 @@ class Action:
         print("Found {count} packages belonging to {org}, with {res} resources meeting query criteria: {fmt}".format(count=count, org=self.query_params.get("name"), res=len(resource_results), fmt=", ".join([ param for param in self.params_list if param.startswith("resource_") ])))
         self.out.write(u"\nFound {count} packages belonging to {org}, with {res} resources meeting query criteria: {fmt}".format(count=count, org=self.query_params.get("name"), res=len(resource_results), fmt=", ".join([ param for param in self.params_list if param.startswith("resource_") ])))
 
-        # make a DataFrame:
-        resources_df = pandas.DataFrame.from_records(resource_results, index="id", columns=sorted(resource_results[0].keys()))
-        # for idx, resource in resources_df.iterrows():
-        #    pass
-        print(resources_df.to_csv(encoding='utf-8'))
-        self.out.write(u"\n" + unicode(resources_df.to_csv(encoding='utf-8')))
-        #self.out.write(resources_df.to_csv())
+        if resource_results:
+            # make a DataFrame:
+            resources_df = pandas.DataFrame.from_records(resource_results, index="id", columns=sorted(resource_results[0].keys()))
+            # for idx, resource in resources_df.iterrows():
+            #    pass
+            print(resources_df.to_csv(encoding='utf-8'))
+            self.out.write(u"\n" + unicode(resources_df.to_csv(encoding='utf-8')))
+            #self.out.write(resources_df.to_csv())
 
-        # obtain the results of Compliance Checker test in a DataFrame:
-        check_results_df = self.run_check(resources_df)
-        check_results_df['score_percent'] = check_results_df['scored_points'] / check_results_df['possible_points']
+            # obtain the results of Compliance Checker test in a DataFrame and add a 'score_percent' column:
+            check_results_df = self.run_check(resources_df)
+            check_results_df['score_percent'] = check_results_df['scored_points'] / check_results_df['possible_points']
 
-        print(check_results_df.to_csv(index=False, encoding='utf-8'))
-        check_results_df.to_csv(self.results_filename, encoding='utf-8')
-        print("should have printed results above....    ")
+            # calculate average scores by summing individual score_percent values per test type add add as extra rows with
+            #   the score values in the 'score_percent' column (ie 'cf-average'):
+            # filter by 'testname' for only the 'score_percent' column values, and calculate using mean()
+            for test in self.cc_tests:
+                score = check_results_df.loc[check_results_df['testname'] == test, 'score_percent' ].mean()
+                # debug:
+                print("score for test '{test}' is: {score}".format(test=test, score=str(score)))
+
+                check_results_df.loc[test + '-average'] = ["" for x in range(9)]
+                check_results_df.set_value(test + '-average', 'score_percent', score)
+
+            print(check_results_df.to_csv(index=False, encoding='utf-8'))
+            check_results_df.to_csv(self.results_filename, encoding='utf-8')
+            print("should have printed results above....    ")
 
 
     def run_check(self, df):
@@ -188,9 +208,6 @@ class Action:
             # temp debug: skip the Hyrax server .ncml URL:
             if url.endswith(".ncml"):
                 continue
-            # append .dods to ERDDAP URLs:
-            if "erddap" in url:
-                url = url + ".dods"
 
             # command-line Compliance Checker:
             for test in self.cc_tests:
@@ -202,8 +219,19 @@ class Action:
                 # Popen/subprocess to call command line CC:
                 #cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE)
+                # debug:
+                print("compliance-checker -t {test} -f json {url}".format(test=test, url=url))
                 cc_out, cc_err = cc.communicate()
                 #cc.terminate()
+                print("next step: reading results into JSON...")
+
+                # workaround: until compliance-checker > 3.0.3 avaialble, remove the first line from 'JSON' output as it isn't JSON:
+                #cc_out_lines = cc_out.split("\n")
+                #cc_out = "\n".join(cc_out_lines[-1:len(cc_out_lines) - 1])
+
+                print("result: " + cc_out)
+                self.out.write("\nresult: " + unicode(cc_out, "utf-8"))
+
                 cc_out_json = json.loads(cc_out)
                 #print(json.dumps(cc_out_json, indent=4, sort_keys=True))
                 #self.out.write(unicode(json.dumps(cc_out_json, indent=4, sort_keys=True)))
@@ -214,7 +242,7 @@ class Action:
                 print(result)
                 self.out.write("\n" + unicode(result))
 
-                #brittle, if columns in result list change order:
+                # write an entry to the DataFrame (using index value set to the service url + testname - brittle, if columns in result list change order)
                 check_results_df.loc[result[0] + result[1]] = result
 
                 # alternatively, could use just this line instead of 'result' list:
