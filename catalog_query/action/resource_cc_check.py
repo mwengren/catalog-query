@@ -217,19 +217,26 @@ class Action:
                 #cc_out = cc.stdout.read()
 
                 # Popen/subprocess to call command line CC:
-                #cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE)
+                cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                #cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE)
                 # debug:
                 print("compliance-checker -t {test} -f json {url}".format(test=test, url=url))
                 cc_out, cc_err = cc.communicate()
                 #cc.terminate()
-                print("next step: reading results into JSON...")
+
+                # check the returncode from cc subprocess, handle:
+                print(cc.returncode)
+                if cc.returncode > 0:
+                    print(cc_err)
+                    #sys.exit(1)
 
                 # workaround: until compliance-checker > 3.0.3 avaialble, remove the first line from 'JSON' output as it isn't JSON:
-                #cc_out_lines = cc_out.split("\n")
-                #cc_out = "\n".join(cc_out_lines[-1:len(cc_out_lines) - 1])
+                if test == "cf":
+                    print("cf: removing first line of debug from 'json'")
+                    cc_out_lines = cc_out.split("\n")
+                    #cc_out = "\n".join(cc_out_lines[1:len(cc_out_lines) - 1])
 
-                print("result: " + cc_out)
+                #print("result: " + cc_out)
                 self.out.write("\nresult: " + unicode(cc_out, "utf-8"))
 
                 cc_out_json = json.loads(cc_out)
