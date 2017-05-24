@@ -231,13 +231,13 @@ class Action:
                     #sys.exit(1)
 
                 # workaround: until compliance-checker > 3.0.3 avaialble, remove the first line from 'JSON' output as it isn't JSON:
-                if test == "cf":
-                    print("cf: removing first line of debug from 'json'")
-                    cc_out_lines = cc_out.split("\n")
+                #if test == "cf":
+                    #print("cf: removing first line of debug from 'json'")
+                    #cc_out_lines = cc_out.split("\n")
                     #cc_out = "\n".join(cc_out_lines[1:len(cc_out_lines) - 1])
 
                 #print("result: " + cc_out)
-                self.out.write("\nresult: " + unicode(cc_out, "utf-8"))
+                #self.out.write("\nresult: " + unicode(cc_out, "utf-8"))
 
                 cc_out_json = json.loads(cc_out)
                 #print(json.dumps(cc_out_json, indent=4, sort_keys=True))
