@@ -30,6 +30,12 @@ def obtain_owner_org(api_url, org_name, logger=None):
         # could also use org['title'] it seems
         if org['display_name'] == org_name: org_result = org
 
+    # check to make sure a valid Org name was passed:
+    try:
+        org_result
+    except NameError:
+        raise ActionException("Error: no Organization matching {org} exists in the Catalog.  Please try again (query is case sensitive).".format(org=org_name))
+
     print("Organization id: {id}".format(id=org_result['id']))
     return org_result
 

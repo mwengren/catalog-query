@@ -206,8 +206,8 @@ class Action:
 
             # ToDo: Remove below:
             # temp debug: skip the Hyrax server .ncml URL:
-            if url.endswith(".ncml"):
-                continue
+            #if url.endswith(".ncml"):
+            #    continue
 
             # command-line Compliance Checker:
             for test in self.cc_tests:

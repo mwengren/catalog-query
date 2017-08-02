@@ -26,14 +26,14 @@ python setup.py install
 #### Usage: ####
 ```
 # generate a list of datasets belonging to the 'NANOOS' Organization:
-catalog-query -c http://data.ioos.us/api/3 -a dataset_list -q=name:NANOOS
+catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NANOOS
 
 # run Compliance Checker against all resources of format 'OPeNDAP' belonging to NANOOS, and output to the file 'nanoos_opendap_compliance_results.csv'
-catalog-query -c http://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_opendap_compliance_results.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_opendap_compliance_results.csv
 
 # run Compliance Checker against all resources of format 'ERDDAP' with resource_name 'OPeNDAP' belonging to NANOOS,
 # and output to the file 'nanoos_opendap_compliance_results.csv'.  This is how to extract only the ERDDAP OPeNDAP URLs from IOOS catalog.
-catalog-query -c http://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_erddap_compliance_results.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:ERDDAP,resource_name:OPeNDAP -o nanoos_erddap_compliance_results.csv
 ```
 
 
