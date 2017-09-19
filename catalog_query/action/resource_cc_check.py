@@ -8,6 +8,7 @@ import io
 import json
 import sys
 import subprocess
+import time
 from datetime import datetime, timedelta
 from dateutil import parser
 try:
@@ -94,6 +95,12 @@ class Action:
             # utf-8 issues resolved by just passing results_filename to DataFrame.to_csv, rather than opening filehandle here and echoing output to it:
             self.results_filename = os.path.join(self.query_params.get("name"), "_".join([self.query_params.get("name"), action_name, label]) + ".csv")
 
+        # create the errpr_output_filename (path to error output file) depending on if an 'error_output' filename parameter was provided or not:
+        if "error_output" in kwargs:
+            self.errors_filename = kwargs['error_output']
+        else:
+            self.errors_filename = os.path.join(self.query_params.get("name"), "_".join([self.query_params.get("name"), "error", action_name, label]) + ".csv")
+
         # parse the Compliance Checker tests to run:
         try:
             self.cc_tests = [ test for test in kwargs.get("cc_tests").split(",") ]
@@ -168,7 +175,7 @@ class Action:
             #self.out.write(resources_df.to_csv())
 
             # obtain the results of Compliance Checker test in a DataFrame and add a 'score_percent' column:
-            check_results_df = self.run_check(resources_df)
+            check_results_df, cc_failures_df = self.run_check(resources_df)
             check_results_df['score_percent'] = check_results_df['scored_points'] / check_results_df['possible_points']
 
             # calculate average scores by summing individual score_percent values per test type add add as extra rows with
@@ -182,9 +189,18 @@ class Action:
                 check_results_df.loc[test + '-average'] = ["" for x in range(9)]
                 check_results_df.set_value(test + '-average', 'score_percent', score)
 
+            # write output to CSV:
+            print("check_results_df contents:")
             print(check_results_df.to_csv(index=False, encoding='utf-8'))
             check_results_df.to_csv(self.results_filename, encoding='utf-8')
-            print("should have printed results above....    ")
+
+            # write errors to CSV (if any):
+            if not cc_failures_df.empty:
+                print("cc_failures_df contents:")
+                print(cc_failures_df.to_csv(index=False, encoding='utf-8'))
+                cc_failures_df.to_csv(self.errors_filename, encoding='utf-8')
+
+            print("should have printed results above....")
 
 
     def run_check(self, df):
@@ -192,15 +208,16 @@ class Action:
         run Compliance Checker check(s):
         compliance-checker -t cf:1.6 -f json http://ona.coas.oregonstate.edu:8080/thredds/dodsC/NANOOS/OCOS
         """
-
-        # create results DataFrame:
+        # create results and failures DataFrames (sometimes CC doesn't like certain DAP urls):
         #check_results_df = pandas.DataFrame(index= "id", columns=['url', 'testname', 'scored_points', 'possible_points', 'source_name', 'high_count', 'medium_count', 'low_count'])
         check_results_df = pandas.DataFrame(columns=['url', 'testname', 'scored_points', 'possible_points', 'source_name', 'high_count', 'medium_count', 'low_count'])
         check_results_df.index = [check_results_df['url'], check_results_df['testname']]
+        failures_df = pandas.DataFrame(columns=['url', 'testname', 'cc_command', 'error_msg'])
+        failures_df.index = [failures_df['url'], failures_df['testname']]
+
         # iterate URLs in the DataFrame to test:
+        #for i, url in enumerate(reversed(df['url'].unique())):
         for i, url in enumerate(df['url'].unique()):
-            """
-            """
             print("Checking url: {url}".format(url=url))
             self.out.write(u"\nChecking url: {url}".format(url=url))
 
@@ -212,15 +229,18 @@ class Action:
             # command-line Compliance Checker:
             for test in self.cc_tests:
 
-                # call("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=self.out)
-                #cc = subprocess.call("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE)
+                # assemble a compliance-checker command we'll use to test the URL:
+                cc_command = "compliance-checker -t {test} -f json {url}".format(test=test, url=url)
+
+                # subprocess.call isn't what we're looking for here, but here's the equiv code:
+                #cc = subprocess.call(cc_command, stdout=subprocess.PIPE)
                 #cc_out = cc.stdout.read()
 
                 # Popen/subprocess to call command line CC:
-                cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                #cc = subprocess.Popen("compliance-checker -t {test} -f json {url}".format(test=test, url=url), stdout=subprocess.PIPE)
+                cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                #cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE)
                 # debug:
-                print("compliance-checker -t {test} -f json {url}".format(test=test, url=url))
+                print(cc_command)
                 cc_out, cc_err = cc.communicate()
                 #cc.terminate()
 
@@ -239,49 +259,61 @@ class Action:
                 #print("result: " + cc_out)
                 #self.out.write("\nresult: " + unicode(cc_out, "utf-8"))
 
-                cc_out_json = json.loads(cc_out)
-                #print(json.dumps(cc_out_json, indent=4, sort_keys=True))
-                #self.out.write(unicode(json.dumps(cc_out_json, indent=4, sort_keys=True)))
+                try:
+                    cc_out_json = json.loads(cc_out)
+                    #print(json.dumps(cc_out_json, indent=4, sort_keys=True))
+                    #self.out.write(unicode(json.dumps(cc_out_json, indent=4, sort_keys=True)))
 
-                # testing with assigning results to list first:
-                result = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'], cc_out_json[test]['possible_points'],
-                            cc_out_json[test]['source_name'], cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'], cc_out_json[test]['low_count'] ]
-                print(result)
-                self.out.write("\n" + unicode(result))
+                    # testing with assigning results to list first:
+                    result = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'],
+                                cc_out_json[test]['possible_points'], cc_out_json[test]['source_name'],
+                                cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'],
+                                cc_out_json[test]['low_count'] ]
+                    print(result)
+                    self.out.write(u"\n" + unicode(result))
 
-                # write an entry to the DataFrame (using index value set to the service url + testname - brittle, if columns in result list change order)
-                check_results_df.loc[result[0] + result[1]] = result
+                    # write an entry to the DataFrame (using index value set to the service url + testname - brittle, if columns in result list change order)
+                    check_results_df.loc[result[0] + result[1]] = result
 
-                # alternatively, could use just this line instead of 'result' list:
-                #check_results_df.loc[url + cc_out_json[test]['testname']] = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'], cc_out_json[test]['possible_points'],
-                #            cc_out_json[test]['source_name'], cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'], cc_out_json[test]['low_count'] ]
+                    # alternatively, could use just this line instead of 'result' list:
+                    #check_results_df.loc[url + cc_out_json[test]['testname']] = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'], cc_out_json[test]['possible_points'],
+                    #            cc_out_json[test]['source_name'], cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'], cc_out_json[test]['low_count'] ]
 
+                    """
+                    # python API Compliance Checker:
+                    # use a StringIO instance to store output instead of an actual file
+                    # Unable to make this approach work with StringIO and deferred to using the subprocess.Popen approach instead
+                    cc_out = StringIO()
+                    check_suite = CheckSuite()
+                    check_suite.load_all_available_checkers()
+                    return_value, cc_err = ComplianceChecker.run_checker(
+                        ds_loc=url,
+                        checker_names = self.cc_tests,
+                        verbose=1,
+                        criteria="normal",
+                        output_filename=cc_out,
+                        output_format="json"
+                    )
+                    #print(cc_out.getvalue())
+                    #cc_json = json.loads(cc_out.getvalue())
+                    #cc_out.close()
+                    #print(json.dumps(cc_json, indent=4, sort_keys=True))
+                    #self.out.write(unicode(json.dumps(cc_json, indent=4, sort_keys=True)))
+                    """
 
-            """
-            # python API Compliance Checker:
-            # use a StringIO instance to store output instead of an actual file
-            cc_out = StringIO()
-            check_suite = CheckSuite()
-            check_suite.load_all_available_checkers()
-            return_value, cc_err = ComplianceChecker.run_checker(
-                ds_loc=url,
-                checker_names = self.cc_tests,
-                verbose=1,
-                criteria="normal",
-                output_filename=cc_out,
-                output_format="json"
-            )
-            #print(cc_out.getvalue())
-            #cc_json = json.loads(cc_out.getvalue())
-            #cc_out.close()
-            #print(json.dumps(cc_json, indent=4, sort_keys=True))
-            #self.out.write(unicode(json.dumps(cc_json, indent=4, sort_keys=True)))
-            """
+                except ValueError as e:
+                    print("compliance-checker JSON parsing failed: {err}".format(err=e))
+                    self.out.write(u"\ncompliance-checker JSON parsing failed: {err}".format(err=e))
+                    #failures_df structure: ['url', 'testname', 'cc_command', 'error_msg']
+                    failures_df.loc[url + test] = [url, test, cc_command, e]
 
+            # pause:
+            time.sleep(2)
             # debug, only check one url:
             #if i == 0:
             #    break
-        return check_results_df
+
+        return check_results_df, failures_df
 
 
     """ moved to util.py:

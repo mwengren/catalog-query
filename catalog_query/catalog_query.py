@@ -39,6 +39,9 @@ def main():
     parser.add_argument('-o', '--output', type=str, required=False,
                         help='Output filename (path to a file to output results to).  Will default to a subdirectory of the CKAN Organization name and a randomized output file name with the Action prefix.')
 
+    parser.add_argument('-e', '--error_output', type=str, required=False,
+                        help='Error output filename (path to a file to output results to).  Will default to a subdirectory of the CKAN Organization name and a randomized error output file name with the Action prefix.')
+
     parser.add_argument('-q', '--query_params', type=str, required=True,
                         help='Query parameter value(s) to pass to the query action.  Multiple query parameters needed for actions that expect multiple parameters can be passed as a comma separated string (eg. \'-q=name:AOOS,format:OPeNDAP or -q=name:NANOOS,resource_format:ERDDAP,resource_name:OPeNDAP)\' to run AOOS OPeNDAP services through the Compliance Checker test) ')
 
@@ -81,6 +84,7 @@ def main():
             spec = {}
             if args.catalog_api_url: spec['catalog_api_url'] = args.catalog_api_url
             if args.output: spec['output'] = args.output
+            if args.error_output: spec['error_output'] = args.error_output
             if args.query_params: spec['query'] = args.query_params
             if args.cc_tests: spec['cc_tests'] = args.cc_tests
 
