@@ -31,17 +31,21 @@ catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:SCCOOS
 catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NERACOOS
 ```
 
-Run Compliance Checker against all resources of format 'OPeNDAP' belonging to a few different CKAN Orgs, output Compliance Checker
+Run Compliance Checker against all resources of format 'OPeNDAP' belonging to a few different IOOS Catalog Organizations, output Compliance Checker
 scores and errors to named CSV files:
 ```
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_opendap_compliance_results.csv -e nanoos_opendap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:PacIOOS,resource_format:OPeNDAP -o pacioos_opendap_compliance_results.csv -e pacioos_opendap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:CARICOOS,resource_format:OPeNDAP -o caricoos_opendap_compliance_results.csv -e caricoos_opendap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:SCCOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o sccoos_opendap_compliance_results.csv -e sccoos_opendap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NERACOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o neracoos_opendap_compliance_results.csv -e neracoos_opendap_compliance_errors.csv
 ```
 
-Run Compliance Checker against all resources of format 'ERDDAP' with resource_name 'OPeNDAP' belonging to NANOOS, and output to the file 'nanoos_opendap_compliance_results.csv'.  This is one example of how to filter only the ERDDAP OPeNDAP URLs from IOOS catalog.  Because the metadata fed into the Catalog may differ, proper query parameters may vary.
+Run Compliance Checker against all resources of format 'ERDDAP' with resource_name 'OPeNDAP' belonging to a few different IOOS Catalog Organizations, and output to named CSV files for Compliance Checker scores and errors.  These are a few examples of how to filter only the ERDDAP OPeNDAP and Tabledap URLs from IOOS catalog.  Because the metadata fed into the Catalog may differ, proper query parameters may vary.
 ```
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:ERDDAP,resource_name:OPeNDAP -o nanoos_erddap_compliance_results.csv -e nanoos_erddap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NERACOOS,resource_name:ERDDAP-tabledap -o neracoos_erddap_compliance_results.csv -e neracoos_erddap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:GCOOS,resource_name:ERDDAP-tabledap -o gcoos_erddap_compliance_results.csv -e gcoos_erddap_compliance_errors.csv
 ```
 
 
@@ -54,6 +58,10 @@ Parameters:
 
 -o | --output : The name an output file to write results to (CSV format for all actions currently).  Will default to a
         CSV file in a subdirectory of the CKAN Organization name with the action name and a randomized string suffix.
+
+-e | --error_output : The name of an output filename to write error information to (CSV format).  Will default to a
+        subdirectory of the CKAN Organization name with the action name and a randomized string suffix  Only used in the
+        'resource_cc_check' Action currently.
 
 -q | --query_params : Query parameter value(s) to pass to the query action.  Multiple query parameters needed for actions
         that expect multiple parameters can be passed as a comma separated string (eg. \'-q=name:AOOS,format:OPeNDAP or
