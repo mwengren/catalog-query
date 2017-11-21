@@ -2,6 +2,15 @@
 Action class that obtains CKAN Resources belonging to a particular organization, runs Compliance Checker tests,
 and writes out results in a .csv file to a subdirectory
 """
+from __future__ import unicode_literals
+try:
+    from urllib.parse import urlencode, urlparse   # Python 3
+    from io import StringIO
+except ImportError:
+    from urllib import urlencode  # Python 2
+    from urlparse import urlparse
+    from StringIO import StringIO
+from builtins import str
 import os
 import errno
 import io
@@ -11,19 +20,13 @@ import subprocess
 import time
 from datetime import datetime, timedelta
 from dateutil import parser
-try:
-    from urllib.parse import urlencode, urlparse   # Python 3
-    from io import StringIO
-except ImportError:
-    from urllib import urlencode  # Python 2
-    from urlparse import urlparse
-    from StringIO import StringIO
+
 import logging
-import random, string
+import random
+import string
 import requests
 import pandas
 from compliance_checker.runner import ComplianceChecker, CheckSuite
-
 
 # local:
 from ..util import obtain_owner_org, package_search, create_output_dir
@@ -80,7 +83,7 @@ class Action:
         # create output file in a directory of the Organization's name for general logging (create if not already existing):
         # get the Action file name to use in naming output file, using os.path.split:
         action_name = os.path.split(__file__)[1].split(".")[0]
-        label = "".join(random.choice(string.lowercase) for i in range(5))
+        label = "".join(random.choice(string.ascii_lowercase) for i in range(5))
         filename = os.path.join(self.query_params.get("name"), action_name + ".out")
 
         if not os.path.exists(os.path.dirname(filename)):
@@ -171,7 +174,7 @@ class Action:
             # for idx, resource in resources_df.iterrows():
             #    pass
             print(resources_df.to_csv(encoding='utf-8'))
-            self.out.write(u"\n" + unicode(resources_df.to_csv(encoding='utf-8')))
+            self.out.write(u"\n" + str(resources_df.to_csv(encoding='utf-8')))
             #self.out.write(resources_df.to_csv())
 
             # obtain the results of Compliance Checker test in a DataFrame and add a 'score_percent' column:
@@ -237,7 +240,7 @@ class Action:
                 #cc_out = cc.stdout.read()
 
                 # Popen/subprocess to call command line CC:
-                cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 #cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE)
                 # debug:
                 print(cc_command)
@@ -257,12 +260,12 @@ class Action:
                     #cc_out = "\n".join(cc_out_lines[1:len(cc_out_lines) - 1])
 
                 #print("result: " + cc_out)
-                #self.out.write("\nresult: " + unicode(cc_out, "utf-8"))
+                #self.out.write("\nresult: " + str(cc_out, "utf-8"))
 
                 try:
                     cc_out_json = json.loads(cc_out)
                     #print(json.dumps(cc_out_json, indent=4, sort_keys=True))
-                    #self.out.write(unicode(json.dumps(cc_out_json, indent=4, sort_keys=True)))
+                    #self.out.write(str(json.dumps(cc_out_json, indent=4, sort_keys=True)))
 
                     # testing with assigning results to list first:
                     result = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'],
@@ -270,7 +273,7 @@ class Action:
                                 cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'],
                                 cc_out_json[test]['low_count'] ]
                     print(result)
-                    self.out.write(u"\n" + unicode(result))
+                    self.out.write(u"\n" + str(result))
 
                     # write an entry to the DataFrame (using index value set to the service url + testname - brittle, if columns in result list change order)
                     check_results_df.loc[result[0] + result[1]] = result
@@ -298,7 +301,7 @@ class Action:
                     #cc_json = json.loads(cc_out.getvalue())
                     #cc_out.close()
                     #print(json.dumps(cc_json, indent=4, sort_keys=True))
-                    #self.out.write(unicode(json.dumps(cc_json, indent=4, sort_keys=True)))
+                    #self.out.write(str(json.dumps(cc_json, indent=4, sort_keys=True)))
                     """
 
                 except ValueError as e:
@@ -310,7 +313,7 @@ class Action:
             # pause:
             time.sleep(2)
             # debug, only check one url:
-            #if i == 0:
+            #if i == 10:
             #    break
 
         return check_results_df, failures_df

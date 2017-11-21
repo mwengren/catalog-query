@@ -2,6 +2,15 @@
 Action class that obtains all DataSets belonging to a particular organization,
 and dumps them in a .csv file to a subdirectory
 """
+from __future__ import unicode_literals
+try:
+    from urllib.parse import urlencode, urlparse   # Python 3
+    from io import StringIO
+except ImportError:
+    from urllib import urlencode  # Python 2
+    from urlparse import urlparse
+    from StringIO import StringIO
+from builtins import str
 import os
 import errno
 import io
@@ -10,15 +19,10 @@ import sys
 import subprocess
 from datetime import datetime, timedelta
 from dateutil import parser
-try:
-    from urllib.parse import urlencode, urlparse   # Python 3
-    from io import StringIO
-except ImportError:
-    from urllib import urlencode  # Python 2
-    from urlparse import urlparse
-    from StringIO import StringIO
+
 import logging
-import random, string
+import random
+import string
 import requests
 import pandas
 from compliance_checker.runner import ComplianceChecker, CheckSuite
@@ -74,7 +78,7 @@ class Action:
         # create output file in a directory of the Organization's name for general logging (create if not already existing):
         # get the Action file name to use in naming output file, using os.path.split:
         action_name = os.path.split(__file__)[1].split(".")[0]
-        label = "".join(random.choice(string.lowercase) for i in range(5))
+        label = "".join(random.choice(string.ascii_lowercase) for i in range(5))
         filename = os.path.join(self.query_params.get("name"), action_name + ".out")
 
         if not os.path.exists(os.path.dirname(filename)):
@@ -171,7 +175,7 @@ class Action:
 
         # make a DataFrame:
         # for result in dataset_results:
-        #    result = { k: unicode(v).encode("utf-8") for k,v in result.iteritems() }
+        #    result = { k: str(v).encode("utf-8") for k,v in result.iteritems() }
         datasets_df = pandas.DataFrame.from_records(dataset_results, index="id", columns=dataset_results[0].keys())
         # debug:
         # for idx, dataset in datasets_df.iterrows():

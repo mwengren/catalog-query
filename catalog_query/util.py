@@ -7,7 +7,7 @@ import logging
 import json
 import requests
 
-from catalog_query import ActionException
+from .catalog_query import ActionException
 
 def obtain_owner_org(api_url, org_name, logger=None):
     """

@@ -66,11 +66,17 @@ def main():
         if args.action == query_action:
             print("query action: " + query_action)
 
-            # Python 2.7 only (how to do this in Py 3?):
-            module = importlib.import_module(".%s" % query_action, package="catalog_query.action")
-            # for a same-level import (no submodule):
-            # module = importlib.import_module(".%s" % query_action, package="catalog_query")
-            Action = module.Action
+            try:
+                # Python 2.7 only (Python 3 does not allow the relative import syntax - eg. '.resource_cc_check'):
+                action_module = importlib.import_module(".%s" % query_action, package="catalog_query.action")
+                # for a same-level import (no submodule):
+                # action_module = importlib.import_module(".%s" % query_action, package="catalog_query")
+
+            # Python 3 compatible: could probably just do it this way for both 2.7 and 3.x (remove try/except in the future)
+            except SystemError as e:
+                action_module = importlib.import_module("catalog_query.action.%s" % query_action)
+
+            Action = action_module.Action
 
             # import failures:
             # from .action.query_action import Action
