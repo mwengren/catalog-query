@@ -13,8 +13,8 @@ catalog-query can be easily extended by writing additional Action classes, bette
 See Usage section below for more details.
 
 ### Requirements ###
-Currently this module works with Python 2.7 only due to the way the action classes are loaded via ```importlib.import_module```.
-Looking for a way to do this in a Python 3-compatible way.
+Python 3 compatible.  Should work in Python 2.7, however untested at present.  Relies on dynamic module loading
+via ```importlib.import_module``` to execute compatible 'Action' classes.
 
 #### Installation: ####
 ```
@@ -28,7 +28,9 @@ Generate a list of datasets belonging to a CKAN Catalog Organization by name:
 ```
 catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NANOOS
 catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:SCCOOS
-catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NERACOOS
+catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NERACOOS -o neracoos_dataset_list.csv
+catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:MARACOOS -o maracoos_dataset_list.csv
+catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:SECOORA -o secoora_dataset_list.csv
 ```
 
 Run Compliance Checker against all resources of format 'OPeNDAP' belonging to a few different IOOS Catalog Organizations, output Compliance Checker
@@ -39,6 +41,8 @@ catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:PacIOOS
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:CARICOOS,resource_format:OPeNDAP -o caricoos_opendap_compliance_results.csv -e caricoos_opendap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:SCCOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o sccoos_opendap_compliance_results.csv -e sccoos_opendap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NERACOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o neracoos_opendap_compliance_results.csv -e neracoos_opendap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:MARACOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o maracoos_opendap_compliance_results.csv -e maracoos_opendap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:SECOORA,resource_format:OPeNDAP -o secoora_opendap_compliance_results.csv -e secoora_opendap_compliance_errors.csv
 ```
 
 Run Compliance Checker against all resources of format 'ERDDAP' with resource_name 'OPeNDAP' belonging to a few different IOOS Catalog Organizations, and output to named CSV files for Compliance Checker scores and errors.  These are a few examples of how to filter only the ERDDAP OPeNDAP and Tabledap URLs from IOOS catalog.  Because the metadata fed into the Catalog may differ, proper query parameters may vary.
