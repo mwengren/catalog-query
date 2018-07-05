@@ -31,6 +31,7 @@ catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:SCCOOS
 catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NERACOOS -o neracoos_dataset_list.csv
 catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:MARACOOS -o maracoos_dataset_list.csv
 catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:SECOORA -o secoora_dataset_list.csv
+catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:CeNCOOS -o cencoos_dataset_list.csv
 ```
 
 Run Compliance Checker against all resources of format 'OPeNDAP' belonging to a few different IOOS Catalog Organizations, output Compliance Checker
@@ -43,6 +44,7 @@ catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:SCCOOS,
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NERACOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o neracoos_opendap_compliance_results.csv -e neracoos_opendap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:MARACOOS,resource_format:OPeNDAP,resource_name:OPeNDAP -o maracoos_opendap_compliance_results.csv -e maracoos_opendap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:SECOORA,resource_format:OPeNDAP -o secoora_opendap_compliance_results.csv -e secoora_opendap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:CeNCOOS,resource_format:OPeNDAP -o cencoos_opendap_compliance_results.csv -e cencoos_opendap_compliance_errors.csv
 ```
 
 Run Compliance Checker against all resources of format 'ERDDAP' with resource_name 'OPeNDAP' belonging to a few different IOOS Catalog Organizations, and output to named CSV files for Compliance Checker scores and errors.  These are a few examples of how to filter only the ERDDAP OPeNDAP and Tabledap URLs from IOOS catalog.  Because the metadata fed into the Catalog may differ, proper query parameters may vary.
@@ -50,6 +52,7 @@ Run Compliance Checker against all resources of format 'ERDDAP' with resource_na
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:ERDDAP,resource_name:OPeNDAP -o nanoos_erddap_compliance_results.csv -e nanoos_erddap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NERACOOS,resource_name:ERDDAP-tabledap -o neracoos_erddap_compliance_results.csv -e neracoos_erddap_compliance_errors.csv
 catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:GCOOS,resource_name:ERDDAP-tabledap -o gcoos_erddap_compliance_results.csv -e gcoos_erddap_compliance_errors.csv
+catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:CeNCOOS,resource_name:ERDDAP-tabledap -o cencoos_erddap_compliance_results.csv -e cencoos_erddap_compliance_errors.csv
 ```
 
 

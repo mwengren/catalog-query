@@ -68,13 +68,13 @@ def main():
 
             try:
                 # Python 2.7 only (Python 3 does not allow the relative import syntax - eg. '.resource_cc_check'):
-                action_module = importlib.import_module(".%s" % query_action, package="catalog_query.action")
+                action_module = importlib.import_module(".{module}".format(module=query_action), package="catalog_query.action")
                 # for a same-level import (no submodule):
                 # action_module = importlib.import_module(".%s" % query_action, package="catalog_query")
 
             # Python 3 compatible: could probably just do it this way for both 2.7 and 3.x (remove try/except in the future)
-            except SystemError as e:
-                action_module = importlib.import_module("catalog_query.action.%s" % query_action)
+            except (SystemError, ModuleNotFoundError) as e:
+                action_module = importlib.import_module("catalog_query.action.{module}".format(module=query_action))
 
             Action = action_module.Action
 
