@@ -6,11 +6,11 @@ from __future__ import unicode_literals
 try:
     from urllib.parse import urlencode, urlparse   # Python 3
     from io import StringIO
+    from builtins import str
 except ImportError:
     from urllib import urlencode  # Python 2
     from urlparse import urlparse
     from StringIO import StringIO
-from builtins import str
 import os
 import errno
 import io
@@ -48,6 +48,8 @@ Resource Compliance Checker Action:
  This Action expects a Organization name to query for resources of a particular format (OPeNDAP for example) which
  can then be passed to Compliance Checker.
 """
+
+
 class Action:
     """
     Attributes
@@ -59,7 +61,7 @@ class Action:
 
     """
 
-    #def __init__(self, *args, **kwargs):
+    # def __init__(self, *args, **kwargs):
     def __init__(self, **kwargs):
         # decode parameters:
         self.catalog_api_url = kwargs.get("catalog_api_url")
@@ -106,14 +108,13 @@ class Action:
 
         # parse the Compliance Checker tests to run:
         try:
-            self.cc_tests = [ test for test in kwargs.get("cc_tests").split(",") ]
+            self.cc_tests = [test for test in kwargs.get("cc_tests").split(",")]
         except AttributeError as e:
             self.cc_tests = CC_TESTS
             print("No Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: {tests}".format(tests=", ".join(CC_TESTS)))
             self.out.write(u"\nNo Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: {tests}".format(tests=", ".join(CC_TESTS)))
-            #raise ActionException("Error running the Resource Compliance Checker action.  You probably want to specify some Compliance Checker tests to run with the -t|-cc_tests param.  Just sayin'.")
+            # raise ActionException("Error running the Resource Compliance Checker action.  You probably want to specify some Compliance Checker tests to run with the -t|-cc_tests param.  Just sayin'.")
             pass
-
 
     def run(self):
         """
@@ -128,7 +129,7 @@ class Action:
 
         # CKAN API interactions:
         # get the Organization:
-        #org = self.obtain_owner_org(self.query_params.get("name"))
+        # org = self.obtain_owner_org(self.query_params.get("name"))
         org = obtain_owner_org(self.catalog_api_url, self.query_params.get("name"), logger=logger)
         # get the Resources:
         # must iterate results (default by 100 as defined in self.package_search)
@@ -147,7 +148,7 @@ class Action:
                     # remaining key string (after 'resource_') and using that as the attribute of the CKAN resource
                     # to filter by (ie 'resource_name' = resource['name'], resource_format = resource['format'], etc)
                     # NOTE: query parameters are ANDed together:
-                    resource_query_keys = [ key for key in self.query_params.keys() if key.startswith("resource_") ]
+                    resource_query_keys = [key for key in self.query_params.keys() if key.startswith("resource_")]
                     for i, key in enumerate(resource_query_keys):
                         # this is the step where we filter out by resource['name'], resource['format'] etc, by taking
                         # the second part of the resource_query_key string after 'resource_' and filtering.
@@ -165,8 +166,8 @@ class Action:
         for resource in resource_results:
             print(json.dumps(resource, indent=4, sort_keys=True))
             self.out.write(json.dumps(resource, indent=4, sort_keys=True, ensure_ascii=False))
-        print("Found {count} packages belonging to {org}, with {res} resources meeting query criteria: {fmt}".format(count=count, org=self.query_params.get("name"), res=len(resource_results), fmt=", ".join([ param for param in self.params_list if param.startswith("resource_") ])))
-        self.out.write(u"\nFound {count} packages belonging to {org}, with {res} resources meeting query criteria: {fmt}".format(count=count, org=self.query_params.get("name"), res=len(resource_results), fmt=", ".join([ param for param in self.params_list if param.startswith("resource_") ])))
+        print("Found {count} packages belonging to {org}, with {res} resources meeting query criteria: {fmt}".format(count=count, org=self.query_params.get("name"), res=len(resource_results), fmt=", ".join([param for param in self.params_list if param.startswith("resource_")])))
+        self.out.write(u"\nFound {count} packages belonging to {org}, with {res} resources meeting query criteria: {fmt}".format(count=count, org=self.query_params.get("name"), res=len(resource_results), fmt=", ".join([param for param in self.params_list if param.startswith("resource_")])))
 
         if resource_results:
             # make a DataFrame:
@@ -175,7 +176,7 @@ class Action:
             #    pass
             print(resources_df.to_csv(encoding='utf-8'))
             self.out.write(u"\n" + str(resources_df.to_csv(encoding='utf-8')))
-            #self.out.write(resources_df.to_csv())
+            # self.out.write(resources_df.to_csv())
 
             # obtain the results of Compliance Checker test in a DataFrame and add a 'score_percent' column:
             check_results_df, cc_failures_df = self.run_check(resources_df)
@@ -185,7 +186,7 @@ class Action:
             #   the score values in the 'score_percent' column (ie 'cf-average'):
             # filter by 'testname' for only the 'score_percent' column values, and calculate using mean()
             for test in self.cc_tests:
-                score = check_results_df.loc[check_results_df['testname'] == test, 'score_percent' ].mean()
+                score = check_results_df.loc[check_results_df['testname'] == test, 'score_percent'].mean()
                 # debug:
                 print("score for test '{test}' is: {score}".format(test=test, score=str(score)))
 
@@ -205,28 +206,27 @@ class Action:
 
             print("should have printed results above....")
 
-
     def run_check(self, df):
         """
         run Compliance Checker check(s):
         compliance-checker -t cf:1.6 -f json http://ona.coas.oregonstate.edu:8080/thredds/dodsC/NANOOS/OCOS
         """
         # create results and failures DataFrames (sometimes CC doesn't like certain DAP urls):
-        #check_results_df = pandas.DataFrame(index= "id", columns=['url', 'testname', 'scored_points', 'possible_points', 'source_name', 'high_count', 'medium_count', 'low_count'])
+        # check_results_df = pandas.DataFrame(index= "id", columns=['url', 'testname', 'scored_points', 'possible_points', 'source_name', 'high_count', 'medium_count', 'low_count'])
         check_results_df = pandas.DataFrame(columns=['url', 'testname', 'scored_points', 'possible_points', 'source_name', 'high_count', 'medium_count', 'low_count'])
         check_results_df.index = [check_results_df['url'], check_results_df['testname']]
         failures_df = pandas.DataFrame(columns=['url', 'testname', 'cc_command', 'error_msg'])
         failures_df.index = [failures_df['url'], failures_df['testname']]
 
         # iterate URLs in the DataFrame to test:
-        #for i, url in enumerate(reversed(df['url'].unique())):
+        # for i, url in enumerate(reversed(df['url'].unique())):
         for i, url in enumerate(df['url'].unique()):
             print("Checking url: {url}".format(url=url))
             self.out.write(u"\nChecking url: {url}".format(url=url))
 
             # ToDo: Remove below:
             # temp debug: skip the Hyrax server .ncml URL:
-            #if url.endswith(".ncml"):
+            # if url.endswith(".ncml"):
             #    continue
 
             # command-line Compliance Checker:
@@ -236,42 +236,42 @@ class Action:
                 cc_command = "compliance-checker -t {test} -f json {url}".format(test=test, url=url)
 
                 # subprocess.call isn't what we're looking for here, but here's the equiv code:
-                #cc = subprocess.call(cc_command, stdout=subprocess.PIPE)
-                #cc_out = cc.stdout.read()
+                # cc = subprocess.call(cc_command, stdout=subprocess.PIPE)
+                # cc_out = cc.stdout.read()
 
                 # Popen/subprocess to call command line CC:
                 cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                #cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE)
+                # cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE)
                 # debug:
                 print(cc_command)
                 cc_out, cc_err = cc.communicate()
-                #cc.terminate()
+                # cc.terminate()
 
                 # check the returncode from cc subprocess, handle:
                 print(cc.returncode)
                 if cc.returncode > 0:
                     print(cc_err)
-                    #sys.exit(1)
+                    # sys.exit(1)
 
                 # workaround: until compliance-checker > 3.0.3 avaialble, remove the first line from 'JSON' output as it isn't JSON:
-                #if test == "cf":
-                    #print("cf: removing first line of debug from 'json'")
-                    #cc_out_lines = cc_out.split("\n")
-                    #cc_out = "\n".join(cc_out_lines[1:len(cc_out_lines) - 1])
+                # if test == "cf":
+                    # print("cf: removing first line of debug from 'json'")
+                    # cc_out_lines = cc_out.split("\n")
+                    # cc_out = "\n".join(cc_out_lines[1:len(cc_out_lines) - 1])
 
-                #print("result: " + cc_out)
-                #self.out.write("\nresult: " + str(cc_out, "utf-8"))
+                # print("result: " + cc_out)
+                # self.out.write("\nresult: " + str(cc_out, "utf-8"))
 
                 try:
                     cc_out_json = json.loads(cc_out)
-                    #print(json.dumps(cc_out_json, indent=4, sort_keys=True))
-                    #self.out.write(str(json.dumps(cc_out_json, indent=4, sort_keys=True)))
+                    # print(json.dumps(cc_out_json, indent=4, sort_keys=True))
+                    # self.out.write(str(json.dumps(cc_out_json, indent=4, sort_keys=True)))
 
                     # testing with assigning results to list first:
-                    result = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'],
-                                cc_out_json[test]['possible_points'], cc_out_json[test]['source_name'],
-                                cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'],
-                                cc_out_json[test]['low_count'] ]
+                    result = [url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'],
+                              cc_out_json[test]['possible_points'], cc_out_json[test]['source_name'],
+                              cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'],
+                              cc_out_json[test]['low_count']]
                     print(result)
                     self.out.write(u"\n" + str(result))
 
@@ -279,7 +279,7 @@ class Action:
                     check_results_df.loc[result[0] + result[1]] = result
 
                     # alternatively, could use just this line instead of 'result' list:
-                    #check_results_df.loc[url + cc_out_json[test]['testname']] = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'], cc_out_json[test]['possible_points'],
+                    # check_results_df.loc[url + cc_out_json[test]['testname']] = [ url, cc_out_json[test]['testname'], cc_out_json[test]['scored_points'], cc_out_json[test]['possible_points'],
                     #            cc_out_json[test]['source_name'], cc_out_json[test]['high_count'], cc_out_json[test]['medium_count'], cc_out_json[test]['low_count'] ]
 
                     """
@@ -307,17 +307,16 @@ class Action:
                 except ValueError as e:
                     print("compliance-checker JSON parsing failed: {err}".format(err=e))
                     self.out.write(u"\ncompliance-checker JSON parsing failed: {err}".format(err=e))
-                    #failures_df structure: ['url', 'testname', 'cc_command', 'error_msg']
+                    # failures_df structure: ['url', 'testname', 'cc_command', 'error_msg']
                     failures_df.loc[url + test] = [url, test, cc_command, e]
 
             # pause:
             time.sleep(2)
             # debug, only check one url:
-            #if i == 10:
+            # if i == 10:
             #    break
 
         return check_results_df, failures_df
-
 
     """ moved to util.py:
     def obtain_owner_org(self, org_name):
