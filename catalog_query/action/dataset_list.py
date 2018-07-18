@@ -6,11 +6,11 @@ from __future__ import unicode_literals
 try:
     from urllib.parse import urlencode, urlparse   # Python 3
     from io import StringIO
+    from builtins import str
 except ImportError:
     from urllib import urlencode  # Python 2
     from urlparse import urlparse
     from StringIO import StringIO
-from builtins import str
 import os
 import errno
 import io
@@ -45,6 +45,8 @@ Resource Compliance Checker Action:
  This Action expects a Organization name to query for resources of a particular format (OPeNDAP for example) which
  can then be passed to Compliance Checker.
 """
+
+
 class Action:
     """
     Attributes
@@ -56,7 +58,7 @@ class Action:
 
     """
 
-    #def __init__(self, *args, **kwargs):
+    # def __init__(self, *args, **kwargs):
     def __init__(self, **kwargs):
         # decode parameters:
         self.catalog_api_url = kwargs.get("catalog_api_url")
@@ -93,7 +95,6 @@ class Action:
         else:
             self.results_filename = os.path.join(self.query_params.get("name"), "_".join([self.query_params.get("name"), action_name, label]) + ".csv")
 
-
     def run(self):
         """
         Run the CKAN API queries and parse results, perform followup actions, if any
@@ -117,7 +118,7 @@ class Action:
             package_results = package_search(self.catalog_api_url, org['id'], count, logger=logger, out=self.out)
             # obtain the total result count to iterate if necessary:
             result_count = package_results['result']['count']
-            print ("result_count: " + str(result_count))
+            print("result_count: " + str(result_count))
             for package in package_results['result']['results']:
                 count += 1
                 # print(count)
@@ -137,15 +138,18 @@ class Action:
                 # ['']:
                 parsed_url = urlparse(self.catalog_api_url, allow_fragments=False)
                 try:
-                    bbox = [ extra['value'] for extra in package['extras'] if extra['key'] == "spatial" ][0]
-                except IndexError: bbox = ""
+                    bbox = [extra['value'] for extra in package['extras'] if extra['key'] == "spatial"][0]
+                except IndexError:
+                    bbox = ""
                 try:
-                    harvest_object_id = [ extra['value'] for extra in package['extras'] if extra['key'] == "harvest_object_id" ][0]
+                    harvest_object_id = [extra['value'] for extra in package['extras'] if extra['key'] == "harvest_object_id"][0]
                     harvest_object_url = "{scheme}://{netloc}/harvest/object/{id}".format(scheme=parsed_url.scheme, netloc=parsed_url.netloc, id=harvest_object_id)
-                except IndexError: harvest_object_url = ""
+                except IndexError:
+                    harvest_object_url = ""
                 try:
-                    waf_location = [ extra['value'] for extra in package['extras'] if extra['key'] == "waf_location" ][0]
-                except IndexError: waf_location = ""
+                    waf_location = [extra['value'] for extra in package['extras'] if extra['key'] == "waf_location"][0]
+                except IndexError:
+                    waf_location = ""
                 dataset_url = "{scheme}://{netloc}/dataset/{name}".format(scheme=parsed_url.scheme, netloc=parsed_url.netloc, name=package['name'])
                 # you have to quote ("") and fields that may have commas for CSV output:
                 title = "\"{title}\"".format(title=package['title']) if "," in package['title'] else package['title']
@@ -153,7 +157,7 @@ class Action:
                     'id': package['id'],
                     'name': package['name'],
                     'dataset_url': dataset_url,
-                    'title': package['title'],
+                    'title': title,
                     'harvest_object_url': harvest_object_url,
                     'waf_location': waf_location,
                     'type': package['type'],
@@ -184,5 +188,5 @@ class Action:
 
         # print(datasets_df.to_csv(encoding='utf-8'))
         # datasets_df.to_csv(self.results_filename, encoding='utf-8')
-        datasets_df.reindex(columns=[ 'name', 'dataset_url', 'title', 'harvest_object_url', 'waf_location', 'type', 'num_resources', 'num_tags', 'bbox' ]).to_csv(self.results_filename, encoding='utf-8')
+        datasets_df.reindex(columns=['name', 'dataset_url', 'title', 'harvest_object_url', 'waf_location', 'type', 'num_resources', 'num_tags', 'bbox']).to_csv(self.results_filename, encoding='utf-8')
         print("should have printed results above....    ")

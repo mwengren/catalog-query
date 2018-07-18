@@ -30,7 +30,7 @@ kwargs = {
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: GIS'
     ],
-    'packages': ['catalog_query'],
+    'packages': ['catalog_query', 'catalog_query.action'],
     'package_data': {
 
     },

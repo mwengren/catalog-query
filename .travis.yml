@@ -1,38 +1,49 @@
 language: python
 
-python:
-  - "2.7"
+sudo: false
 
-env:
-  - CONDA="python=2.7"
+matrix:
+  fast_finish: true
+  include:
+  - python: 2.7
+    env: TEST_TARGET=default
+  - python: 3.5
+    env: TEST_TARGET=default
+  - python: 3.6
+    env: TEST_TARGET=default
+  - python: 3.6
+    env: TEST_TARGET=coding_standards
+  allow_failures:
+  - python: 3.6
+    env: TEST_TARGET=coding_standards
 
 before_install:
   # conda setup (see: http://conda.pydata.org/docs/travis.html):
-  - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  # - sudo apt-get update
+  - wget http://bit.ly/miniconda -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
+  - conda update conda --yes
+  - conda config --set show_channel_urls true
   - conda config --add channels conda-forge --force
   # Useful for debugging any issues with conda
-  - conda info -a
+  # - conda info -a
 
-  - travis_retry conda create --yes -n test-environment --file requirements.txt $CONDA
-#  - travis_retry conda install -n test-environment --yes pytest flake8
-  - source activate test-environment
+  - conda create --yes -n TEST python=$TRAVIS_PYTHON_VERSION --file requirements.txt --file requirements-dev.txt
+  - source activate TEST
 
+# test source:
 install:
-#  - pip install -r requirements.txt
-  - pip install -e .
+# - pip install -r requirements.txt
+#  - pip install -e .
+  - python setup.py sdist && version=$(python setup.py --version) && pushd dist  && pip install catalog-query-${version}.tar.gz && popd
 
 
 script:
-  - flake8 --ignore=E501,F401,F841 --statistics catalog_query
+  - if [[ $TEST_TARGET == 'default' ]]; then
+      catalog-query -c https://data.ioos.us/api/3 -a dataset_list -q=name:NANOOS ;
+      catalog-query -c https://data.ioos.us/api/3 -a resource_cc_check -q=name:NANOOS,resource_format:OPeNDAP -o nanoos_opendap_compliance_results.csv -e nanoos_opendap_compliance_errors.csv ;
+    fi
+  - if [[ $TEST_TARGET == 'coding_standards' ]]; then
+      flake8 --ignore=E501,F401 --statistics catalog_query  ;
+    fi
