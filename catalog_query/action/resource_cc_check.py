@@ -240,7 +240,7 @@ class Action:
                 #cc_out = cc.stdout.read()
 
                 # Popen/subprocess to call command line CC:
-                cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 #cc = subprocess.Popen(cc_command, stdout=subprocess.PIPE)
                 # debug:
                 print(cc_command)
@@ -301,7 +301,7 @@ class Action:
                     #cc_json = json.loads(cc_out.getvalue())
                     #cc_out.close()
                     #print(json.dumps(cc_json, indent=4, sort_keys=True))
-                    #self.out.write(str(json.dumps(cc_json, indent=4, sort_keys=True)))
+                    #self.out.write(unicode(json.dumps(cc_json, indent=4, sort_keys=True)))
                     """
 
                 except ValueError as e:
@@ -313,7 +313,7 @@ class Action:
             # pause:
             time.sleep(2)
             # debug, only check one url:
-            #if i == 10:
+            #if i == 0:
             #    break
 
         return check_results_df, failures_df
