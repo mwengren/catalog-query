@@ -5,20 +5,20 @@ import io
 import importlib
 import sys
 from datetime import datetime, timedelta
-from dateutil import parser
 try:
     from urllib.parse import urlparse  # Python 3
 except ImportError:
     from urlparse import urlparse  # Python 2
-#import requests
+# import requests
 
-#import action
 
 IOOS_CATALOG_URL = "https://data.ioos.us/api/3"
-VALID_QUERY_ACTIONS = ['resource_cc_check','dataset_list']
+VALID_QUERY_ACTIONS = ['resource_cc_check', 'dataset_list']
+
 
 class ActionException(Exception):
     pass
+
 
 def main():
     """
@@ -56,7 +56,6 @@ def main():
     if catalog_api_url.params or catalog_api_url.query:
         sys.exit("Error: '--catalog_api_url' parameter should not contain query parameters ('{query}'). Please include only the service endpoint URL.  Value passed: {param}".format(query=catalog_api_url.query, param=args.catalog_api_url))
 
-
     # check to make sure the 'action' argument passed matches an expected query action type:
     if args.action not in VALID_QUERY_ACTIONS:
         sys.exit("Error: '--action' parameter value must contain a known query action.  Valid query actions: {valid}.  Value passed: {param}".format(valid=", ".join(VALID_QUERY_ACTIONS), param=args.action))
@@ -67,18 +66,19 @@ def main():
             print("query action: " + query_action)
 
             try:
-                # Python 2.7 only (Python 3 does not allow the relative import syntax - eg. '.resource_cc_check'):
-                action_module = importlib.import_module(".%s" % query_action, package="catalog_query.action")
+                # try relative importlib import of action_module (Python 2.7?)
+                # this should work in fact in both 2.7 and 3.x:
+                action_module = importlib.import_module(".{module}".format(module=query_action), package="catalog_query.action")
                 # for a same-level import (no submodule):
                 # action_module = importlib.import_module(".%s" % query_action, package="catalog_query")
 
-            # Python 3 compatible: could probably just do it this way for both 2.7 and 3.x (remove try/except in the future)
-            except SystemError as e:
-                action_module = importlib.import_module("catalog_query.action.%s" % query_action)
+            # handle ImportError and instead try absolute module import (catalog_query.action.*) (Python 3?):
+            except (SystemError, ImportError) as e:
+                action_module = importlib.import_module("catalog_query.action.{module}".format(module=query_action))
 
             Action = action_module.Action
 
-            # import failures:
+            # import failure attempts:
             # from .action.query_action import Action
             # module = "action." + query_action + ".Action"
             # __import__(module)
@@ -86,13 +86,17 @@ def main():
             # Action = importlib.import_module("..Action.", "action." + query_action)
             # module = __import__(".action." + query_action, globals(), locals(), ['Action'])
 
-
             spec = {}
-            if args.catalog_api_url: spec['catalog_api_url'] = args.catalog_api_url
-            if args.output: spec['output'] = args.output
-            if args.error_output: spec['error_output'] = args.error_output
-            if args.query_params: spec['query'] = args.query_params
-            if args.cc_tests: spec['cc_tests'] = args.cc_tests
+            if args.catalog_api_url:
+                spec['catalog_api_url'] = args.catalog_api_url
+            if args.output:
+                spec['output'] = args.output
+            if args.error_output:
+                spec['error_output'] = args.error_output
+            if args.query_params:
+                spec['query'] = args.query_params
+            if args.cc_tests:
+                spec['cc_tests'] = args.cc_tests
 
             try:
                 action = Action(**spec)
