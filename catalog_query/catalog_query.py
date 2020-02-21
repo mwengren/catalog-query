@@ -13,7 +13,7 @@ except ImportError:
 
 
 IOOS_CATALOG_URL = "https://data.ioos.us/api/3"
-VALID_QUERY_ACTIONS = ['resource_cc_check', 'dataset_list']
+VALID_QUERY_ACTIONS = ['resource_cc_check', 'dataset_list', 'dataset_list_by_filter']
 
 
 class ActionException(Exception):
@@ -37,12 +37,12 @@ def main():
                         help='Name of a defined Action (CKAN query plus any subsequent analysis) to run. Current provided actions: {valid}'.format(valid=", ".join(VALID_QUERY_ACTIONS)))
 
     parser.add_argument('-o', '--output', type=str, required=False,
-                        help='Output filename (path to a file to output results to).  Will default to a subdirectory of the CKAN Organization name and a randomized output file name with the Action prefix.')
+                        help='Output filename (path to a file to output results to).  Will default to a randomized output file name with the Action prefix.')
 
     parser.add_argument('-e', '--error_output', type=str, required=False,
-                        help='Error output filename (path to a file to output results to).  Will default to a subdirectory of the CKAN Organization name and a randomized error output file name with the Action prefix.')
+                        help='Error output filename (path to a file to output results to).  Will default to a randomized error output file name with the Action prefix.')
 
-    parser.add_argument('-q', '--query_params', type=str, required=True,
+    parser.add_argument('-q', '--query_params', type=str, required=False,
                         help='Query parameter value(s) to pass to the query action.  Multiple query parameters needed for actions that expect multiple parameters can be passed as a comma separated string (eg. \'-q=name:AOOS,format:OPeNDAP or -q=name:NANOOS,resource_format:ERDDAP,resource_name:OPeNDAP)\' to run AOOS OPeNDAP services through the Compliance Checker test) ')
 
     parser.add_argument('-t', '--cc_tests', type=str, required=False,
@@ -73,7 +73,7 @@ def main():
                 # action_module = importlib.import_module(".%s" % query_action, package="catalog_query")
 
             # handle ImportError and instead try absolute module import (catalog_query.action.*) (Python 3?):
-            except (SystemError, ImportError) as e:
+            except (SystemError, ImportError, ModuleNotFoundError) as e:
                 action_module = importlib.import_module("catalog_query.action.{module}".format(module=query_action))
 
             Action = action_module.Action

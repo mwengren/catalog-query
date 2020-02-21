@@ -43,14 +43,27 @@ def obtain_owner_org(api_url, org_name, logger=None):
     return org_result
 
 
-def package_search(api_url, org_id, start_index, logger=None, out=None):
+def package_search(api_url, org_id=None, params=None, start_index=0, result_count=100, logger=None, out=None):
     """
     package_search: run the package_search CKAN API query, filtering by org_id, iterating by 100, starting with 'start_index'
     perform package_search by owner_org:
     https://data.ioos.us/api/3/action/package_search?q=owner_org:
     """
     action = "package_search"
-    payload = {'q': "owner_org:{id}".format(id=org_id), 'start': start_index, 'rows': 100}
+    if org_id is not None:
+        if params is not None:
+            payload = {'q': "owner_org:{id}+{params}".format(id=org_id, params="+".join(params)), 'start': start_index, 'rows': result_count}
+            print(payload)
+        else:
+            payload = {'q': "owner_org:{id}".format(id=org_id), 'start': start_index, 'rows': result_count}
+            print(payload)
+    else:
+        if params is not None:
+            payload = {'q': "{params}".format(params="+".join(params)), 'start': start_index, 'rows': result_count}
+            print(payload)
+        else:
+            payload = {'start': start_index, 'rows': result_count}
+            print(payload)
     url = ("/").join([api_url, "action", action])
     if logger:
         logger.info("Executing {action}.  URL: {url}. Parameters {params}".format(action=action, url=url, params=payload))
@@ -58,11 +71,58 @@ def package_search(api_url, org_id, start_index, logger=None, out=None):
     result = json.loads(r.text)
 
     # this is the full package_search result:
-    # print json.dumps(result, indent=4, sort_keys=True)
-    if out:
-        out.write(json.dumps(result, indent=4, sort_keys=True, ensure_ascii=False))
+    #if out:
+    #    out.write(json.dumps(result, indent=4, sort_keys=True, ensure_ascii=False))
 
+    #print(result)
     return result
+
+
+def dataset_query(api_url, org_id=None, params=None, result_count=100, logger=None, out=None):
+    """
+    Wrapper function that queries CKAN package_search API endpoint via package_search function and collects results into list
+    """
+
+    count = 0
+    dataset_results = []
+    while True:
+        package_results = package_search(api_url, org_id=org_id, params=params, start_index=count, result_count=result_count, logger=logger, out=out)
+        # obtain the total result count to iterate if necessary:
+        result_count = package_results['result']['count']
+
+        # here we just append to dataset_results a nested dict with package['id'] and package JSON string
+        for package in package_results['result']['results']:
+            count += 1
+            #print(package)
+            """
+            for resource in package['resources']:
+                # perform the resource filtering logic:
+                # this entails parsing out all the query_params that start with 'resource_', then parsing the
+                # remaining key string (after 'resource_') and using that as the attribute of the CKAN resource
+                # to filter by (ie 'resource_name' = resource['name'], resource_format = resource['format'], etc)
+                # NOTE: query parameters are ANDed together:
+                resource_query_keys = [key for key in self.query_params.keys() if key.startswith("resource_")]
+                for i, key in enumerate(resource_query_keys):
+                    # this is the step where we filter out by resource['name'], resource['format'] etc, by taking
+                    # the second part of the resource_query_key string after 'resource_' and filtering.
+                    # break from loop if a query parameter check fails:
+                    if resource[key.split("_", 1)[1]] != self.query_params[key]:
+                        break
+                    # if all checks pass, we add this to the resource_results list:
+                    elif len(resource_query_keys) == i + 1:
+                        resource_results.append(resource)
+            """
+
+
+            dataset_results.append({
+                'id': package['id'],
+                'package': package
+            })
+        if count == result_count:
+            break
+
+    print("result_count: " + str(result_count))
+    return dataset_results
 
 
 def create_output_dir(dir_name):
@@ -70,9 +130,7 @@ def create_output_dir(dir_name):
     create an output directory(ies)
     """
     try:
-        os.makedirs(dir_name)
-        # test error handling:
-        # raise OSError
+        os.makedirs(dir_name, exist_ok=True)
     except OSError as ex:
         if ex.errno == errno.EEXIST:
             print("Warning: the configured output directory: {output_dir} already exists. Files may be overwritten from prior runs.".format(output_dir=os.path.abspath(dir_name)))

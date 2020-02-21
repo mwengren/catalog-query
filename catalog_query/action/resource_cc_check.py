@@ -29,7 +29,8 @@ import pandas
 from compliance_checker.runner import ComplianceChecker, CheckSuite
 
 # local:
-from ..util import obtain_owner_org, package_search, create_output_dir
+from .action import ActionBase
+from ..util import obtain_owner_org, package_search, dataset_query, create_output_dir
 from ..catalog_query import ActionException
 
 # logging:
@@ -42,69 +43,25 @@ logger.addHandler(log)
 # default CC tests:
 CC_TESTS = ['cf', 'acdd', 'ioos']
 
-"""
-Resource Compliance Checker Action:
- check a data provider's dataset's resources against Compliance Checker tests.
- This Action expects a Organization name to query for resources of a particular format (OPeNDAP for example) which
- can then be passed to Compliance Checker.
-"""
-
-
-class Action:
+class Action(ActionBase):
     """
-    Attributes
-    ----------
-    catalog_api_url : str
-        URL of CKAN API to sumbit queries to
+    resource_cc_check Action:
 
+    Check a data provider's dataset's resources against Compliance Checker tests.
 
-
+    Requires a CKAN Organization name ('name') to be passed as a query parameter (-q|--query_params) to query for resources of a particular format (OPeNDAP for example) which can then be passed to Compliance Checker.
     """
 
     # def __init__(self, *args, **kwargs):
     def __init__(self, **kwargs):
-        # decode parameters:
-        self.catalog_api_url = kwargs.get("catalog_api_url")
-
-        # the query parameters for this action are all passed in list form in the 'query' parameter arg, and must be decoded:
-        # this is a bit of a hack to extract query parameter keys into instance variables to use in the queries
-        # expected values are along the lines of:
-        #   -name:<organization_name>
-        #   -resource_format: <format of a dataset's resource>
-        #   -resource_name: <name of a dataset's resource>
-        #   - more...?
-        self.params_list = kwargs.get("query").split(",")
-        if len(self.params_list) == 1 and len(self.params_list[0]) == 0:
-            raise ActionException("Error running the Resource Compliance Checker action.  Query Params not passed to Action")
-        self.query_params = dict(param.split(":") for param in self.params_list)
+        super().__init__(**kwargs)
 
         # at a minimum, we need an organization name to filter resources by:
         if "name" not in self.query_params.keys():
-            raise ActionException("Error running the Resource Compliance Checker action.  No 'name' parameter (CKAN Organization name) passed to the Resource Compliance Checker Action.  This is required.")
+            raise ActionException("Error running the '{}' action.  No 'name' parameter (CKAN Organization name) provided as a query parameter. This is required for this action.".format(self.action_name))
 
-        # create output file in a directory of the Organization's name for general logging (create if not already existing):
-        # get the Action file name to use in naming output file, using os.path.split:
-        action_name = os.path.split(__file__)[1].split(".")[0]
-        label = "".join(random.choice(string.ascii_lowercase) for i in range(5))
-        filename = os.path.join(self.query_params.get("name"), action_name + ".out")
-
-        if not os.path.exists(os.path.dirname(filename)):
-            # will throw ActionException with error message if the output directory can't be created:
-            create_output_dir(os.path.dirname(filename))
-        self.out = io.open(filename, mode="wt", encoding="utf-8")
-
-        # create the results_filename (path to results output file) depending on if an 'output' filename parameter was provided or not:
-        if "output" in kwargs:
-            self.results_filename = kwargs['output']
-        else:
-            # utf-8 issues resolved by just passing results_filename to DataFrame.to_csv, rather than opening filehandle here and echoing output to it:
-            self.results_filename = os.path.join(self.query_params.get("name"), "_".join([self.query_params.get("name"), action_name, label]) + ".csv")
-
-        # create the errpr_output_filename (path to error output file) depending on if an 'error_output' filename parameter was provided or not:
-        if "error_output" in kwargs:
-            self.errors_filename = kwargs['error_output']
-        else:
-            self.errors_filename = os.path.join(self.query_params.get("name"), "_".join([self.query_params.get("name"), "error", action_name, label]) + ".csv")
+        # call init_out:
+        init_out(subdir=self.query_params.get("name"))
 
         # parse the Compliance Checker tests to run:
         try:
@@ -113,23 +70,20 @@ class Action:
             self.cc_tests = CC_TESTS
             print("No Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: {tests}".format(tests=", ".join(CC_TESTS)))
             self.out.write(u"\nNo Compliance Checker test name passed via the 'cc_test' parameter (-t|--cc_tests).  Running with the default tests: {tests}".format(tests=", ".join(CC_TESTS)))
-            # raise ActionException("Error running the Resource Compliance Checker action.  You probably want to specify some Compliance Checker tests to run with the -t|-cc_tests param.  Just sayin'.")
-            pass
 
     def run(self):
         """
         # r = requests.post(url=url, headers=headers, data=data, files=files, auth=auth, verify=verify)
-        # orgs:
+        # orgs API query:
         # https://data.ioos.us/api/3/action/organization_list?q=nanoos&all_fields=true
-        # packages:
+        # packages API query:
         # https://data.ioos.us/api/3/action/package_search?q=owner_org:e596892f-bf26-4020-addc-f60b78a39f41
-        # resources:
+        # resources API query:
         # https://data.ioos.us/api/3/action/resource_search?query=format:OPeNDAP
         """
 
         # CKAN API interactions:
         # get the Organization:
-        # org = self.obtain_owner_org(self.query_params.get("name"))
         org = obtain_owner_org(self.catalog_api_url, self.query_params.get("name"), logger=logger)
         # get the Resources:
         # must iterate results (default by 100 as defined in self.package_search)
