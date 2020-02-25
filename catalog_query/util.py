@@ -43,7 +43,7 @@ def obtain_owner_org(api_url, org_name, logger=None):
     return org_result
 
 
-def package_search(api_url, org_id=None, params=None, start_index=0, result_count=100, logger=None, out=None):
+def package_search(api_url, org_id=None, params=None, start_index=0, rows=100, logger=None, out=None):
     """
     package_search: run the package_search CKAN API query, filtering by org_id, iterating by 100, starting with 'start_index'
     perform package_search by owner_org:
@@ -52,33 +52,37 @@ def package_search(api_url, org_id=None, params=None, start_index=0, result_coun
     action = "package_search"
     if org_id is not None:
         if params is not None:
-            payload = {'q': "owner_org:{id}+{params}".format(id=org_id, params="+".join(params)), 'start': start_index, 'rows': result_count}
+            payload = {'q': "owner_org:{id}+{params}".format(id=org_id, params="+".join(params)), 'start': start_index, 'rows': rows}
             print(payload)
         else:
-            payload = {'q': "owner_org:{id}".format(id=org_id), 'start': start_index, 'rows': result_count}
+            payload = {'q': "owner_org:{id}".format(id=org_id), 'start': start_index, 'rows': rows}
             print(payload)
     else:
         if params is not None:
-            payload = {'q': "{params}".format(params="+".join(params)), 'start': start_index, 'rows': result_count}
+            payload = {'q': "{params}".format(params=" ".join(params)), 'start': start_index, 'rows': rows}
             print(payload)
         else:
-            payload = {'start': start_index, 'rows': result_count}
+            payload = {'start': start_index, 'rows': rows}
             print(payload)
     url = ("/").join([api_url, "action", action])
     if logger:
         logger.info("Executing {action}.  URL: {url}. Parameters {params}".format(action=action, url=url, params=payload))
-    r = requests.post(url=url, json=payload)
-    result = json.loads(r.text)
+    #r = requests.get(url=url, headers = {'content-type': 'application/json'}, params=payload)
+    #r = requests.post(url=url, headers = {'content-type': 'application/json'}, data=json.dumps(payload))
+    r = requests.post(url=url, headers = {'content-type': 'application/json'}, json=payload)
+    print(json.dumps(payload))
+    print(r.text)
+    # either works:
+    #result = json.loads(r.text)
+    result = r.json()
 
     # this is the full package_search result:
     #if out:
     #    out.write(json.dumps(result, indent=4, sort_keys=True, ensure_ascii=False))
-
-    #print(result)
     return result
 
 
-def dataset_query(api_url, org_id=None, params=None, result_count=100, logger=None, out=None):
+def dataset_query(api_url, org_id=None, params=None, rows=100, logger=None, out=None):
     """
     Wrapper function that queries CKAN package_search API endpoint via package_search function and collects results into list
     """
@@ -86,9 +90,11 @@ def dataset_query(api_url, org_id=None, params=None, result_count=100, logger=No
     count = 0
     dataset_results = []
     while True:
-        package_results = package_search(api_url, org_id=org_id, params=params, start_index=count, result_count=result_count, logger=logger, out=out)
+        package_results = package_search(api_url, org_id=org_id, params=params, start_index=count, rows=rows, logger=logger, out=out)
         # obtain the total result count to iterate if necessary:
         result_count = package_results['result']['count']
+        if count == 0:
+            print("result_count: " + str(result_count))
 
         # here we just append to dataset_results a nested dict with package['id'] and package JSON string
         for package in package_results['result']['results']:
@@ -113,7 +119,6 @@ def dataset_query(api_url, org_id=None, params=None, result_count=100, logger=No
                         resource_results.append(resource)
             """
 
-
             dataset_results.append({
                 'id': package['id'],
                 'package': package
@@ -121,7 +126,6 @@ def dataset_query(api_url, org_id=None, params=None, result_count=100, logger=No
         if count == result_count:
             break
 
-    print("result_count: " + str(result_count))
     return dataset_results
 
 

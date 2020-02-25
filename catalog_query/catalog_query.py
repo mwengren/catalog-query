@@ -45,6 +45,9 @@ def main():
     parser.add_argument('-q', '--query_params', type=str, required=False,
                         help='Query parameter value(s) to pass to the query action.  Multiple query parameters needed for actions that expect multiple parameters can be passed as a comma separated string (eg. \'-q=name:AOOS,format:OPeNDAP or -q=name:NANOOS,resource_format:ERDDAP,resource_name:OPeNDAP)\' to run AOOS OPeNDAP services through the Compliance Checker test) ')
 
+    parser.add_argument('-op', '--operator', type=str, required=False, default='AND',
+                        help='The operator to use when concatenating query parameters together.  Appropriate values are: AND, OR.')
+
     parser.add_argument('-t', '--cc_tests', type=str, required=False,
                         help='Compliance checker tests to run (by name, comma-separated) (eg \'-t=acdd:1.3,cf:1.6,ioos\')')
 
@@ -67,7 +70,6 @@ def main():
 
             try:
                 # try relative importlib import of action_module (Python 2.7?)
-                # this should work in fact in both 2.7 and 3.x:
                 action_module = importlib.import_module(".{module}".format(module=query_action), package="catalog_query.action")
                 # for a same-level import (no submodule):
                 # action_module = importlib.import_module(".%s" % query_action, package="catalog_query")
@@ -95,6 +97,8 @@ def main():
                 spec['error_output'] = args.error_output
             if args.query_params:
                 spec['query'] = args.query_params
+            if args.operator:
+                spec['operator'] = args.operator
             if args.cc_tests:
                 spec['cc_tests'] = args.cc_tests
 

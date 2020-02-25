@@ -2,42 +2,11 @@
 Action class that obtains all DataSets belonging to a particular organization,
 and dumps them in a .csv file to a subdirectory
 """
-from __future__ import unicode_literals
-try:
-    from urllib.parse import urlencode, urlparse   # Python 3
-    from io import StringIO
-    from builtins import str
-except ImportError:
-    from urllib import urlencode  # Python 2
-    from urlparse import urlparse
-    from StringIO import StringIO
-import os
-import errno
-import io
-import json
-import traceback
-from datetime import datetime, timedelta
-from dateutil import parser
-
-import logging
-import random
-import string
-import requests
-import pandas
-
 
 # local:
 from .action import ActionBase
-from ..util import obtain_owner_org, package_search, dataset_query, create_output_dir
+from ..util import create_output_dir
 from ..catalog_query import ActionException
-
-# logging:
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-log = logging.FileHandler('dataset_list.log', mode='w')
-log.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s'))
-logger.addHandler(log)
-
 
 class Action(ActionBase):
     """
@@ -72,10 +41,10 @@ class Action(ActionBase):
 
         # CKAN API interactions:
         # get the organization:
-        org = obtain_owner_org(self.catalog_api_url, self.query_params.get("name"), logger=logger)
+        org = self.obtain_owner_org(self.query_params.get("name"))
 
         # query packages for organization:
-        results = dataset_query(self.catalog_api_url, org_id=org['id'], logger=logger, out=self.out)
+        results = self.dataset_query(org_id=org['id'])
 
         #handle output:
         datasets = self.parse_dataset_results(results)

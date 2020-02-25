@@ -1,27 +1,17 @@
 """
-dataset_list_by_filter Action: return a list of datasets that contain a set of resources.
+dataset_list_by_filter Action: return a list of datasets that contain match the filter criteria passed (for 'package_search' API endpoint).
 """
-
-import logging
-
 
 # local:
 from .action import ActionBase
-from ..util import obtain_owner_org, package_search, dataset_query, create_output_dir
+from ..util import create_output_dir
 from ..catalog_query import ActionException
-
-# logging:
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-log = logging.FileHandler('dataset_list.log', mode='w')
-log.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s'))
-logger.addHandler(log)
 
 class Action(ActionBase):
     """
     dataset_list_by_filter Action:
 
-    Output a list of CKAN datasets that include a particular resource or set of resources.  This is useful to filter a full CKAN catalog to determine how many datasets provide a certain type of access (OPenDAP, THREDDS, ERDDAP, WMS, WFS, etc).
+    Output a list of CKAN datasets that match filter criteria passed.  This can be useful to filter a full CKAN catalog to determine how many datasets provide a certain type of access (OPenDAP, THREDDS, ERDDAP, WMS, WFS, etc).
 
     No required query parameters, however if omitted it will just dump the full CKAN dataset contents into the output CSV.
     """
@@ -44,7 +34,7 @@ class Action(ActionBase):
         """
 
         # query packages based on self.params_list list:
-        results = dataset_query(self.catalog_api_url, params=self.params_list, logger=logger, out=self.out)
+        results = self.dataset_query(params=self.params_list, operator=self.operator)
 
         #handle output:
         datasets = self.parse_dataset_results(results)
