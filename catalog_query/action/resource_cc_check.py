@@ -25,9 +25,9 @@ class Action(ActionBase):
     """
     resource_cc_check Action:
 
-    Check a data provider's dataset's resources against Compliance Checker tests.
+    Check dataset resources against Compliance Checker tests.  Output results and score information to .csv file. Output file contains summaries of CC results as well as commands run to obtain them.  Detailed test results are not produced with this tool, tests must be run individually from the outputs generated.
 
-    Requires a CKAN Organization name ('name') to be passed as a query parameter (-q|--query_params) to query for resources of a particular format (OPeNDAP for example) which can then be passed to Compliance Checker.
+    Filters should be passed in the form of (-q|--query_params) to query for resources of a particular format that Compliance Checker can read (eg. ERDDAP, OPeNDAP)  Otherwise tests may fail when passed to the checker.  May be long running depending on the number of datasets, resources, and tests requested.
     """
 
     # def __init__(self, *args, **kwargs):
@@ -83,14 +83,14 @@ class Action(ActionBase):
         self.out.write("\nChecking formats: {}".format(formats_to_test))
 
         # handle results - format: [{'id': 'package_id', 'package': 'package_json'},]:
-        # here, we iterate through each package's resources and check if its 'format' key value matches an item in formats_to_test and add to resources list:
+        # iterate through each package's resources and check if its 'format' value matches an item in formats_to_test and add to resources list:
         resources = []
         count = 0
         for result in results:
             #if count == 0:
             #    self.out.write("\n Example result: " + json.dumps(result['package']['resources'], indent=2, sort_keys=True, ensure_ascii=False) + "\n")
 
-            # first, match any resources whose 'format' value matches one of the types to test:
+            # match any resources whose 'format' value matches one of the types to test:
             fmt_match = [resource for resource in result['package']['resources'] if resource['format'] in formats_to_test]
             count = count + len(fmt_match)
             resources.extend(fmt_match)
@@ -104,7 +104,6 @@ class Action(ActionBase):
 
         #print("Found {count} packages with {res} resources meeting query criteria: {fmt}".format(count=len(results), res=len(resources), fmt=", ".join([param for param in self.params_list])))
         self.out.write("\nFound {count} packages with {res} resources meeting query criteria: {fmt}".format(count=len(results), res=len(resources), fmt=", ".join([param for param in self.params_list])))
-
 
         if resources:
             # make a DataFrame:
@@ -123,9 +122,6 @@ class Action(ActionBase):
             # filter by 'testname' for only the 'score_percent' column values, and calculate using mean()
             for test in check_results_df['testname'].unique():
                 score = check_results_df.loc[check_results_df['testname'] == test, 'score_percent'].mean()
-                # debug:
-                #print("score for test '{test}' is: {score}".format(test=test, score=str(score)))
-
                 check_results_df.loc[test + '-average'] = ["" for x in range(11)]
                 check_results_df.at[test + '-average', 'score_percent'] = score
 
@@ -152,6 +148,7 @@ class Action(ActionBase):
         failures_df = pandas.DataFrame(columns=['url', 'testname', 'cc_command', 'error_msg'])
         failures_df.index = [failures_df['url'], failures_df['testname']]
 
+        num_urls = len(df['url'].unique())
         # iterate unique URLs in the DataFrame to test:
         for i, url in enumerate(df['url'].unique()):
             print("Checking url: {url}".format(url=url))
@@ -223,6 +220,10 @@ class Action(ActionBase):
                     self.out.write("\nResults JSON parsing failed: {}".format(str(e)))
                     # failures_df structure: ['url', 'testname', 'cc_command', 'error_msg']
                     failures_df.loc[url + test] = [url, test, cc_command, str(e)]
+
+            # record status:
+            print("Check {} of {} completed".format(i, num_urls))
+            self.out.write("\nCheck {} of {} completed".format(i, num_urls))
 
             # pause for a few seconds:
             time.sleep(2)
