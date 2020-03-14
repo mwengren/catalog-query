@@ -142,7 +142,6 @@ class Action(ActionBase):
         compliance-checker -t cf:1.6 -f json http://ona.coas.oregonstate.edu:8080/thredds/dodsC/NANOOS/OCOS
         """
         # create results and failures DataFrames (sometimes CC doesn't like certain DAP urls):
-        # check_results_df = pandas.DataFrame(index= "id", columns=['url', 'testname', 'scored_points', 'possible_points', 'source_name', 'high_count', 'medium_count', 'low_count'])
         check_results_df = pandas.DataFrame(columns=['url', 'testname', 'scored_points', 'possible_points', 'high_count', 'medium_count', 'low_count', 'score_percent', 'cc_command', 'cc_spec_version', 'cc_url'])
         check_results_df.index = [check_results_df['url'], check_results_df['testname']]
         failures_df = pandas.DataFrame(columns=['url', 'testname', 'cc_command', 'error_msg'])
@@ -161,7 +160,7 @@ class Action(ActionBase):
                 cc_command = "compliance-checker -t {test} -f json {url}".format(test=test, url=url)
 
                 # debug:
-                #print("Checker command: {}".format(cc_command))
+                # print("Checker command: {}".format(cc_command))
                 self.out.write("\nChecker command: {}".format(cc_command))
 
                 # subprocess.call isn't what we're looking for here, but here's the equiv code:
@@ -183,6 +182,7 @@ class Action(ActionBase):
 
                 try:
                     cc_out_json = json.loads(cc_out)
+                    # debug: print the full checker JSON output:
                     # print(json.dumps(cc_out_json, indent=4, sort_keys=True))
                     # self.out.write(str(json.dumps(cc_out_json, indent=4, sort_keys=True)))
 
